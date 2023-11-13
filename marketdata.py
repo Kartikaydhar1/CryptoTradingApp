@@ -52,6 +52,6 @@ def poll_data(api_key, symbols, interval):
 
 
 api_key_file_path = "api_key.txt"
-symbols = "BTC,ETH,SOL,XRP"
+symbols = "BTC,ETH,SOL"
 api_key = read_api_key_from_file(api_key_file_path)
 poll_data(api_key, symbols, 60)
