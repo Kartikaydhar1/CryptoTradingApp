@@ -1,5 +1,6 @@
 import requests
 import time
+import csv
 
 
 def read_api_key_from_file(file_path):
@@ -42,16 +43,45 @@ def extract_fields(response_data):
     return extracted_data
 
 
-def poll_data(api_key, symbols, interval):
+def poll_price(api_key, symbols):
+    response_data = make_api_request(api_key, symbols)
+    if response_data:
+        extracted_fields = extract_fields(response_data)
+        return extracted_fields
+    return None
+
+
+def calculate():
+    api_key_file_path = "api_key.txt"
+    symbols = "BTC,ETH,SOL"
+
     while True:
-        response_data = make_api_request(api_key, symbols)
-        if response_data:
-            extracted_fields = extract_fields(response_data)
-            print(extracted_fields)
-        time.sleep(interval)
+        api_key = read_api_key_from_file(api_key_file_path)
+        polled_data = poll_price(api_key, symbols)
+
+        if polled_data:
+            with open("exchange_data.csv", "r") as file:
+                reader = csv.reader(file)
+                last_prices = {row[0]: float(row[1]) for row in reader}
+
+            for symbol, info in polled_data.items():
+                price = info["price"]
+                last_price = last_prices.get(symbol)
+
+                if last_price is not None:
+                    if price > last_price:
+                        print(f"Symbol: {symbol}, Action: Sell. Polled price ({price}) is greater than the last price ({last_price})")
+                    else:
+                        print(f"Symbol: {symbol}, Action: Buy. Polled price ({price}) is less than the last price ({last_price})")
+
+                last_prices[symbol] = price
+
+            with open("exchange_data.csv", "w", newline="") as file:
+                writer = csv.writer(file)
+                for symbol, price in last_prices.items():
+                    writer.writerow([symbol, price])
+
+        time.sleep(60)
 
 
-api_key_file_path = "api_key.txt"
-symbols = "BTC,ETH,SOL"
-api_key = read_api_key_from_file(api_key_file_path)
-poll_data(api_key, symbols, 60)
+calculate()
